@@ -1,14 +1,13 @@
-import telebot
+import asyncio
+import telebot as tb
+from telebot import types
+import kb
 
-bot = telebot.TeleBot("5815112728:AAHcJ_GcAXDAzemA731QYrKNY_w-leAWugI")
+bot = tb.TeleBot("5815112728:AAHcJ_GcAXDAzemA731QYrKNY_w-leAWugI")
 
-@bot.message_handler(commands=['/start', '/help'])
-def send_welcome(message):
-	bot.reply_to(message, "Howdy, how are you doing?")
-
-@bot.message_handler(func=lambda message: True)
-def echo_all(message):
-	bot.reply_to(message, message.text)
+@bot.message_handler(commands=['start'])
+def Start(message):
+    bot.send_message(message.chat.id, message.text, reply_markup=kb.main_menu)
 
 if __name__ == '__main__':
     bot.infinity_polling()
