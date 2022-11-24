@@ -24,13 +24,16 @@ def print_authorize(message):
 def print_main_menu(message):
     card_reply = types.KeyboardButton('Счета')
     ops_reply = types.KeyboardButton('Операции')
-
     markup = types.ReplyKeyboardMarkup(row_width=4).add(card_reply, ops_reply)
-    print(states)
-    bot.send_message(message.chat.id, "Здраствуйте {} {}! Чем могу вам быть полезен?".format(states[message.from_user.id]['user_info']['surname'], states[message.from_user.id]['user_info']['name']), reply_markup=markup)
+    
+    id = message.from_user.id
+    user_info = backend.get_user_by_login_pass(connection, states[id]['login'], states[id]['pass'])
+    bot.send_message(message.chat.id, "Здраствуйте {} {}! Чем могу вам быть полезен?".format(user_info['surname'], user_info['name']), reply_markup=markup)
 
 def print_account(message):
-    accounts = states[message.from_user.id]['accounts']
+    id = message.from_user.id
+    user_info = backend.get_user_by_login_pass(connection, states[id]['login'], states[id]['pass'])
+    accounts = backend.get_active_accounts_by_user(connection, user_info['id'])
     accounts = ['{} {} {}'.format(x['number'], x['status'], x['type']) for x in accounts]
     accounts = [str(i+1)+'. '+x for i, x in enumerate(accounts)]
     markup = types.ReplyKeyboardMarkup(row_width=4).add(*[str(x+1) for x in range(len(accounts))], types.KeyboardButton('Назад'))
@@ -38,8 +41,10 @@ def print_account(message):
 
 def print_concrete_account(message):
     id = message.from_user.id
+    user_info = backend.get_user_by_login_pass(connection, states[id]['login'], states[id]['pass'])
+    accounts = backend.get_active_accounts_by_user(connection, user_info['id'])
     markup = types.ReplyKeyboardMarkup(row_width=4).add(types.KeyboardButton('Назад'))
-    bot.send_message(message.chat.id, str(states[id]['accounts'][states[id]['index']]), reply_markup=markup)
+    bot.send_message(message.chat.id, str(accounts[states[id]['index']]), reply_markup=markup)
 
 def print_ops(message):
     back_reply = types.KeyboardButton('Назад')
@@ -62,13 +67,9 @@ def handle_messages(message):
     if states[id]['state'] == State.authorize:
         if message.text == 'Гончарова Мария':
             states[id] = {'state':State.main_menu, 'login':'QQKGJFPVFY', 'pass':'FociSsQIb8'}
-            states[id]['user_info'] = backend.get_user_by_login_pass(connection, states[id]['login'], states[id]['pass'])
-            states[id]['accounts'] = backend.get_active_accounts_by_user(connection, states[id]['user_info']['id'])
             print_main_menu(message)
         elif message.text == 'Кондратьев Семен':
             states[id] = {'state':State.main_menu, 'login':'WQLXCYMEUZ', 'pass':'BGdcN1G72e'}
-            states[id]['user_info'] = backend.get_user_by_login_pass(connection, states[id]['login'], states[id]['pass'])
-            states[id]['accounts'] = backend.get_active_accounts_by_user(connection, states[id]['user_info']['id'])
             print_main_menu(message)
         else:
             print_authorize(message)
@@ -85,9 +86,12 @@ def handle_messages(message):
         if message.text == 'Назад':
             states[id]['state'] = State.main_menu
             print_main_menu(message)
-        elif message.text.isnumeric() and int(message.text) > 0 and int(message.text) <= len(states[id]['accounts']):
-            states[id]['state'] = State.concrete_card
-            states[id]['index'] = int(message.text) - 1
+        elif message.text.isnumeric():
+            user_info = backend.get_user_by_login_pass(connection, states[id]['login'], states[id]['pass'])
+            accounts = backend.get_active_accounts_by_user(connection, user_info['id'])
+            if int(message.text) > 0 and int(message.text) <= len(accounts):
+                states[id]['state'] = State.concrete_card
+                states[id]['index'] = int(message.text) - 1
             print_concrete_account(message)
         else:
             print_account(message)
@@ -106,4 +110,8 @@ def handle_messages(message):
 
 if __name__ == '__main__':
     print('Setted up')
-    bot.infinity_polling()
+    while True:
+        try:
+            bot.polling(timeout=1000)
+        except Exception as e:
+            print(e)
