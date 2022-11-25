@@ -253,42 +253,37 @@ class Operations(State):
         self.passw = passw
 
     def render(self, message, connection):
-        markup = types.ReplyKeyboardMarkup()
-        exit = types.KeyboardButton('Назад')
-        op_between_bills = types.KeyboardButton('Перевод между счетами')
-        op_between_persons = types.KeyboardButton('Перевод на счёт внутри банка')
-        op_ebenya = types.KeyboardButton('Перевод на счёт вне банка')
-        markup.add(exit, op_between_bills, op_between_persons,op_ebenya)
-        ops_list = ['Перевод между счетами', 'Перевод на счёт внутри банка', 'Перевод на счёт вне банка']
-        self.bot.send_message(message.chat.id, "Какой тип транзакции вы хотите совершить?", reply_markup=markup)
-        type_ops = message.text
-
-        if message.text in ops_list:
-            self.bot.send_message(message.chat.id, "Введите *номер вашего счёта*", parse_mode='Markdown')
-            id_from = message.text   
-            self.bot.send_message(message.chat.id, "Введите *сумму*", parse_mode='Markdown')
-            amount = message.text        
-
-            user_info = get_user_by_login_pass(connection, self.login, self.passw)
-            accounts = get_accounts_by_user(connection, user_info['id'])
-            result = [f"🧾 {i+1}. {str(x['number'])} - {status_to_string[x['status']]} {type_to_string[x['type']]}" for i, x in enumerate(accounts)]
-            result = '\n'.join(result)
-            buttons = [types.KeyboardButton(str(i+1)) for i in range(len(accounts))]
-            markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(*buttons)
-            self.bot.send_message(message.chat.id, result, reply_markup=markup)
-            if type_ops == 'Перевод на счёт внутри банка':
-                make_between_cards(connection, id_from, id_to, amount)
+        buttons = [types.KeyboardButton('Назад'), types.KeyboardButton('Перевод между счетами'), types.KeyboardButton('Перевод на счёт внутри банка'), types.KeyboardButton('Перевод на счёт вне банка')]
+        markup = types.ReplyKeyboardMarkup().add(*buttons)
+        self.bot.send_message(message.chat.id, 'Какой тип транзакции вы хотите совершить?', reply_markup=markup)
         
-
     def next(self, message, connection):
         if message.text == 'Назад':
             return MainMenu(self.bot, self.login, self.passw)
+        elif message.text == 'Перевод между счетами':
+            return UserInsideTransaction(self.bot, self.login, self.passw)
         else:
             return Operations(self.bot, self.login, self.passw)
             
+class UserInsideTransaction(State):
+    def __init__(self, bot, login, passw):
+        self.bot = bot
+        self.login = login
+        self.passw = passw
 
-
-
+    def render(self, message, connection):
+        user_info = get_user_by_login_pass(connection, self.login, self.passw)
+        accounts = get_not_canceled_accounts_by_user(connection, user_info['id'])
+        result = [f"🧾 {i+1}. {str(x['number'])} - {status_to_string[x['status']]} {type_to_string[x['type']]}" for i, x in enumerate(accounts)]
+        result = '\n'.join(result)
+        buttons = [types.KeyboardButton(str(i+1)) for i in range(len(accounts))] 
+        buttons += types.KeyboardButton('Назад')
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(*buttons)
+        self.bot.send_message(message.chat.id, "Выберите первый счёт:/n" + result, reply_markup=markup)
+    
+    def next(self, message, connection):
+        if message.text == 'Назад':
+            return Operations(self.bot, self.login, self.passw)
 
 
 class Offers(State):

@@ -4,10 +4,10 @@ import states
 from backend import *
 from utils import *
 
-API_TOKEN = "5832977748:AAH0WbooWs5awOwb0ZfegCaH4j_zil4paBo"
+API_TOKEN = "5815112728:AAHcJ_GcAXDAzemA731QYrKNY_w-leAWugI"
 APP_HOST = '127.0.0.1'
 APP_PORT = '8444'
-WEB_HOOK_URL = 'https://0bee-128-68-79-69.eu.ngrok.io'
+WEB_HOOK_URL = 'https://28a7-213-80-202-212.eu.ngrok.io'
 
 bot = tb.TeleBot(API_TOKEN)
 app = flask.Flask(__name__)
