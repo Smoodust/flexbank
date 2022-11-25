@@ -155,7 +155,7 @@ def get_sum_transaction_user(conn, id_user):
             sum += abs(trans['amount'])
     return sum
 
-def get_sum_transaction_account(conn, id_account):
+def get_diff_transaction_account(conn, id_account):
     transactions = get_transactions_by_account(conn, id_account)
     return sum([x['amount'] for x in transactions])
 
@@ -172,7 +172,7 @@ def get_diff_transaction(conn, id_user):
 
 def get_transactions_by_account(conn, id_account):
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM ACCOUNT WHERE id_account=?", (id_account, ))
+    cursor.execute("SELECT * FROM TRANSACTIONS WHERE id_account=?", (id_account, ))
     result = cursor.fetchall()
     return [{
         'id':news[0],

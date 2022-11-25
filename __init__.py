@@ -1,7 +1,8 @@
 import telebot as tb
 import flask
 import states
-import backend
+from backend import *
+from utils import *
 
 API_TOKEN = "5928558655:AAHOQcmlQTMJRVe_7IFEnAHHUw2qvvYhaZM"
 APP_HOST = '127.0.0.1'
@@ -13,7 +14,7 @@ app = flask.Flask(__name__)
 
 global states_dict, connection
 states_dict = {}
-connection = backend.get_connection()
+connection = get_connection()
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):

@@ -135,19 +135,16 @@ class ConcreteAccount(State):
         self.login = login
         self.passw = passw
         self.index = index
-'''Информация об этом счете:
-Баланс: 1213;
-Кол-во привязанных карт: 6'''
+
     def render(self, message, connection):
         user_info = get_user_by_login_pass(connection, self.login, self.passw)
+        print('NVLCZVKASF')
         account = get_accounts_by_user(connection, user_info['id'])[self.index]
         cards = get_cards_by_account(connection, account['id'])
-        result = f'''Счет {account['number']}
-Информация:
-Баланс = {get_sum_transaction(connection)};
-Кол-во привязанных карт: {len(cards)}'''
+        result = concrete_account_first.format(account['number'], get_diff_transaction_account(connection, account['id']), len(cards))
         markup = types.ReplyKeyboardMarkup(row_width=4).add(types.KeyboardButton('Назад'))
-        self.bot.send_message(message.chat.id, "Concrete "+str(self.index), reply_markup=markup)
+        #types.ReplyKeyboardRemove()
+        self.bot.send_message(message.chat.id, result, reply_markup=markup)
 
     def next(self, message, connection):
         if message.text == 'Назад':
