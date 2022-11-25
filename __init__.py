@@ -19,8 +19,7 @@ connection = backend.get_connection()
 def handle_start(message):
     id = message.from_user.id
     states_dict[id] = states.Start(bot)
-    states_dict[id].render(message)
-    print(states_dict)
+    states_dict[id].render(message, connection)
 
 @bot.message_handler(content_types=['text'])
 def handle_messages(message):
@@ -28,9 +27,8 @@ def handle_messages(message):
     if id not in states_dict:
         states_dict[id] = states_dict.Start(bot)
     
-    states_dict[id] = states_dict[id].next(message)
-    states_dict[id].render(message)
-    print(states_dict)
+    states_dict[id] = states_dict[id].next(message, connection)
+    states_dict[id].render(message, connection)
 
 @app.route('/', methods=['POST'])
 def webhook():

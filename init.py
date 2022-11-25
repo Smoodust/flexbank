@@ -73,7 +73,7 @@ def but_money_you_good(message):
     #сохранить ввод
 
 def print_logo(message):
-    bot.send_animation(message.chat.id, InputFile(r"C:\Users\USER\Documents\flexbank\content\FlexBank.gif"), caption='HELLO ЕБАТЬ', reply_markup=but_main_menu())
+    bot.send_animation(message.chat.id, InputFile(r"C:\Users\USER\Documents\flexbank\content\FlexBank.gif"), caption='Здравствуйте! Я банкинг-бот Neo! Для начала работы пройдите авторизацию. \n Нажмите Да для продолжения.', reply_markup=but_main_menu())
 
 
 @bot.message_handler(commands=['start'])
