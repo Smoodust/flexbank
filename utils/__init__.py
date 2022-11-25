@@ -1,11 +1,11 @@
 status_to_string = {
     'active':'активный',
-    'blocked':'заблокированый',
+    'blocked':'заблокированный',
     'closed':'закрытый'
 }
 
 type_to_string = {
-    'debit':'дебитовый',
+    'debit':'дебетовый',
     'credit':'кредитный'
 }
 
@@ -47,3 +47,9 @@ FlexBank обновляет условия хранения евро и долл
         'image':r".\Save.jpg"
     }
 ]
+
+def format_transaction(account, transaction):
+    if transaction['amount'] > 0:
+        return "{} -> {} в размере {} у.е.".format(transaction['another_subject'], account['number'], transaction['amount'])
+    else:
+        return "{} -> {} в размере {} у.е.".format(account['number'], transaction['another_subject'], -transaction['amount'])

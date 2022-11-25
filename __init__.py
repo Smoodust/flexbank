@@ -7,7 +7,7 @@ from utils import *
 API_TOKEN = "5832977748:AAH0WbooWs5awOwb0ZfegCaH4j_zil4paBo"
 APP_HOST = '127.0.0.1'
 APP_PORT = '8444'
-WEB_HOOK_URL = 'https://123f-213-80-237-142.eu.ngrok.io'
+WEB_HOOK_URL = 'https://0bee-128-68-79-69.eu.ngrok.io'
 
 bot = tb.TeleBot(API_TOKEN)
 app = flask.Flask(__name__)
@@ -28,7 +28,7 @@ def start_help(message):
 1.*Счета*. С помощью этой кнопки вы можете сменить свой счет/карту и настроить выбранную карту.
 2.*Операции*. С помощью этой кнопки вы можете перевести или зачислить средства.
 3.*Предложения*. С помощью этой кнопки вы можете получить специальные предложения от нас ;).
-4.*Новости*. С помощью этой кнопки вы можете узнать о наших последних новостях.""", reply_markup=start_main_menu(), parse_mode='Markdown')
+4.*Новости*. С помощью этой кнопки вы можете узнать о наших последних новостях.""", parse_mode='Markdown')
 
 @bot.message_handler(content_types=['text'])
 def handle_messages(message):

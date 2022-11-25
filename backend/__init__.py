@@ -1,9 +1,10 @@
 import sqlite3 as sl
 import hashlib
 import datetime
+import os
 
 def get_connection():
-    return sl.connect(r'C:\Users\USER\Documents\flexbank\database\database.db', check_same_thread=False)
+    return sl.connect(os.path.join(os.getcwd(), 'database', 'database.db'), check_same_thread=False)
 
 def check_authentication(conn, login, passw):
     cursor = conn.cursor()
@@ -47,6 +48,18 @@ def get_active_accounts_by_user(conn, id_user):
         'number':account[4]
     } for account in result]
 
+def get_not_canceled_accounts_by_user(conn, id_user):
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM ACCOUNT WHERE id_user=? AND (status='active' OR status='blocked')", (id_user, ))
+    result = cursor.fetchall()
+    return [{
+        'id':account[0],
+        'id_user':account[1],
+        'type':account[2],
+        'status':account[3],
+        'number':account[4]
+    } for account in result]
+
 def get_cards_by_account(conn, id_account):
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM CARDS WHERE id_account=?", (id_account, ))
@@ -63,6 +76,19 @@ def get_cards_by_account(conn, id_account):
 def get_active_cards_by_account(conn, id_account):
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM CARDS WHERE id_account=? AND status='active'", (id_account, ))
+    result = cursor.fetchall()
+    return [{
+        'id':card[0],
+        'id_account':card[1],
+        'status':card[2],
+        'card_number':card[3],
+        'validity_period':card[4],
+        'cvc':card[5]
+    } for card in result]
+
+def get_not_canceled_cards_by_account(conn, id_account):
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM CARDS WHERE id_account=? AND (status='active' OR status='blocked')", (id_account, ))
     result = cursor.fetchall()
     return [{
         'id':card[0],
@@ -178,6 +204,3 @@ def make_between_our_cards(conn, id_from, id_to, amount):
     card_to = get_card_by_id(conn, id_to)
     make_transaction(conn, card_from['id_account'], card_to['id_account'], datetime.today().strftime("%d/%m/%y"), -amount)
     make_transaction(conn, card_to['id_account'], card_from['id_account'], datetime.today().strftime("%d/%m/%y"), amount)
-
-#login = 'WQLXCYMEUZ'
-#passw = 'BGdcN1G72e'
