@@ -4,7 +4,7 @@ import states
 from backend import *
 from utils import *
 
-API_TOKEN = "5928558655:AAHOQcmlQTMJRVe_7IFEnAHHUw2qvvYhaZM"
+API_TOKEN = "5832977748:AAH0WbooWs5awOwb0ZfegCaH4j_zil4paBo"
 APP_HOST = '127.0.0.1'
 APP_PORT = '8444'
 WEB_HOOK_URL = 'https://123f-213-80-237-142.eu.ngrok.io'
@@ -21,6 +21,14 @@ def handle_start(message):
     id = message.from_user.id
     states_dict[id] = states.Start(bot)
     states_dict[id].render(message, connection)
+
+@bot.message_handler(commands=['help'])
+def start_help(message):
+    bot.send_message(message.chat.id, """Что делают кнопки меню?
+1.*Счета*. С помощью этой кнопки вы можете сменить свой счет/карту и настроить выбранную карту.
+2.*Операции*. С помощью этой кнопки вы можете перевести или зачислить средства.
+3.*Предложения*. С помощью этой кнопки вы можете получить специальные предложения от нас ;).
+4.*Новости*. С помощью этой кнопки вы можете узнать о наших последних новостях.""", reply_markup=start_main_menu(), parse_mode='Markdown')
 
 @bot.message_handler(content_types=['text'])
 def handle_messages(message):

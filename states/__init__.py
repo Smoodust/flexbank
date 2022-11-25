@@ -2,8 +2,6 @@ from abc import ABC, abstractmethod
 from telebot import types
 from telebot.types import InputFile
 from backend import *
-from frontend.News import start_help
-from offer import but_offer, send_offers
 from utils import *
 
 class State(ABC):
@@ -20,7 +18,7 @@ class Start(State):
         self.bot = bot
 
     def render(self, message, connection):
-        markup = types.ReplyKeyboardMarkup(row_width=4).add(types.KeyboardButton('Да'))
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('Да'))
         self.bot.send_animation(message.chat.id, InputFile(r"C:\Users\USER\Documents\flexbank\content\FlexBank.gif"), caption='Здравствуйте! Я банкинг-бот Neo! Для начала работы пройдите авторизацию.\nНажмите Да для продолжения.', reply_markup=markup)
 
     def next(self, message, connection):
@@ -64,7 +62,7 @@ class VerifyPerson(State):
     def render(self, message, connection):
         user_info = get_user_by_login_pass(connection, self.login, self.passw)
         user_info['name'], user_info['surname']
-        markup = types.ReplyKeyboardMarkup(row_width=4).add(types.KeyboardButton('Да'), types.KeyboardButton('Нет'))
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('Да'), types.KeyboardButton('Нет'))
         self.bot.send_message(message.chat.id, '{} {}, это вы?'.format(user_info['surname'], user_info['name']), reply_markup=markup)
 
     def next(self, message, connection):
@@ -87,7 +85,8 @@ class MainMenu(State):
         accounts_reply = types.KeyboardButton('Счета')
         ops_reply = types.KeyboardButton('Операции')
         offers_reply = types.KeyboardButton('Предложения')
-        markup = types.ReplyKeyboardMarkup(row_width=4).add(accounts_reply, ops_reply, offers_reply)
+        news_reply = types.KeyboardButton('Новости')
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(accounts_reply, ops_reply, offers_reply, news_reply)
         self.bot.send_message(message.chat.id, "Здравствуйте, {}!\nЧто хотите сделать?".format(user_info['name']), reply_markup=markup)
 
     def next(self, message, connection):
@@ -97,6 +96,8 @@ class MainMenu(State):
             return Operations(self.bot, self.login, self.passw)
         elif message.text == 'Предложения':
             return Offers(self.bot, self.login, self.passw)
+        elif message.text == 'Новости':
+            return News(self.bot, self.login, self.passw)
         else:
             return MainMenu(self.bot, self.login, self.passw)
 
@@ -113,7 +114,7 @@ class Accounts(State):
         result = '\n'.join(result)
         buttons = [types.KeyboardButton('Назад'), types.KeyboardButton('Обновить')]
         buttons = buttons + [types.KeyboardButton(str(i+1)) for i in range(len(accounts))]
-        markup = types.ReplyKeyboardMarkup(row_width=4).add(*buttons)
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(*buttons)
         self.bot.send_message(message.chat.id, result, reply_markup=markup)
 
     def next(self, message, connection):
@@ -138,11 +139,10 @@ class ConcreteAccount(State):
 
     def render(self, message, connection):
         user_info = get_user_by_login_pass(connection, self.login, self.passw)
-        print('NVLCZVKASF')
         account = get_accounts_by_user(connection, user_info['id'])[self.index]
         cards = get_cards_by_account(connection, account['id'])
         result = concrete_account_first.format(account['number'], get_diff_transaction_account(connection, account['id']), len(cards))
-        markup = types.ReplyKeyboardMarkup(row_width=4).add(types.KeyboardButton('Назад'))
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('Назад'))
         #types.ReplyKeyboardRemove()
         self.bot.send_message(message.chat.id, result, reply_markup=markup)
 
@@ -159,14 +159,14 @@ class Operations(State):
         self.passw = passw
 
     def render(self, message, connection):
-        markup = types.ReplyKeyboardMarkup(row_width=4).add(types.KeyboardButton('Назад'), types.KeyboardButton('Переводы'))
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('Назад'))
         self.bot.send_message(message.chat.id, "ops", reply_markup=markup)
 
     def next(self, message, connection):
         if message.text == 'Назад':
-            return MainMenu(self.bot)
+            return MainMenu(self.bot, self.login, self.passw)
         elif message.text == 'Переводы':
-            return 
+            return Operations(self.bot, self.login, self.passw)
         else:
             return Operations(self.bot, self.login, self.passw)
 
@@ -221,25 +221,36 @@ class Offers(State):
         self.login = login
         self.passw = passw
 
-    def but_offer():
-        keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-        to_menu = types.KeyboardButton(text="В меню")
-        keyboard.add(to_menu)
-        return keyboard
-
-    def send_offers(self, message):
-        if get_sum_transaction(connection, message.user.id )>2000000:
-            self.bot.send_message(message.chat.id, text='За последний месяц вы сделали переводов на сумме превышающую 2 млн. рублей. Для того чтобы оформить вип статус перейдите по ссылке '+SEND_URL("http/exampe.com"))
-        if get_diff_transaction (connection, message.user.id )<0:
-            self.bot.send_message(message.chat.id, text='Ваши траты за последнйи месяц превысили ваш доход. Наш банк предлагает оформить кредитную карту с увеличенным рассрочным периодом. Если хотите оформить перейдите оп ссылкке: '+SEND_URL("http/exampe.com"))
-        self.bot.send_message(message.chat.id, text='Flexbank для всех новых пользователей предлагает ипотеку под пониженный процент. Если хотите оформить перейдите по ссылке: '+SEND_URL("http/exampe.com"))
-
     def render(self, message, connection):
-        send_offers(self, message)
-        self.bot.send_message(message.chat.id, reply_markup=but_offer())
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('Назад'))
+        user = get_user_by_login_pass(connection, self.login, self.passw)
+        if get_sum_transaction_user(connection, user['id']) > 2000000:
+            self.bot.send_message(message.chat.id, text='За последний месяц вы сделали переводов на сумму, превышающую 2 млн. рублей. Для того чтобы оформить вип статус, перейдите по ссылке http://exampe.com', reply_markup=markup)
+        elif get_diff_transaction_user(connection, user['id']) < 0:
+            self.bot.send_message(message.chat.id, text='Ваши траты за последний месяц превысили ваш доход. Наш банк предлагает оформить кредитную карту с увеличенным рассрочным периодом. Перейдите по ссылкке: http://exampe.com', reply_markup=markup)
+        else:
+            self.bot.send_message(message.chat.id, text='Flexbank для всех новых пользователей предлагает ипотеку под пониженный процент. Если хотите оформить перейдите по ссылке: http://exampe.com', reply_markup=markup)
 
     def next(self, message, connection):
         if message.text == 'Назад':
             return MainMenu(self.bot, self.login, self.passw)
         else:
             return Offers(self.bot, self.login, self.passw)
+
+class News(State):
+    def __init__(self, bot, login, passw):
+        self.bot = bot
+        self.login = login
+        self.passw = passw
+
+    def render(self, message, connection):
+        index = random.randint(0, 3)
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        markup.add(types.KeyboardButton(text="Назад"))
+        self.bot.send_photo(message.chat.id, InputFile(news_dict[index]['image']), text=news_dict[index]['desc'], reply_markup=markup, parse_mode="Markdown")
+
+    def next(self, message, connection):
+        if message.text == 'Назад':
+            return MainMenu(self.bot, self.login, self.passw)
+        else:
+            return News(self.bot, self.login, self.passw)
