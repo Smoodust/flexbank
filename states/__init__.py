@@ -159,7 +159,7 @@ class Operations(State):
         self.passw = passw
 
     def render(self, message, connection):
-        markup = types.ReplyKeyboardMarkup(row_width=4).add(types.KeyboardButton('Назад'))
+        markup = types.ReplyKeyboardMarkup(row_width=4).add(types.KeyboardButton('Назад'), types.KeyboardButton('Переводы'))
         self.bot.send_message(message.chat.id, "ops", reply_markup=markup)
 
     def next(self, message, connection):
@@ -170,6 +170,51 @@ class Operations(State):
         else:
             return Operations(self.bot, self.login, self.passw)
 
+class TransactionsBetweenBills(State):
+    def __init__(self, bot, login, passw):
+        self.bot = bot
+        self.login = login
+        self.passwd = passwd
+
+    def render(self, message, connection):
+        self.bot.send_message(message.chat.id, "Переводы между счетами", reply_markup=but_operation())
+
+    def next(self, message, connection):
+        if message.text == 'Назад':
+            return MainMenu(self.bot, self.login, self.passw)
+        else:
+            return Transactions(self.bot, self.login, self.passw)
+
+class TransactionsBetweenPersons(State):
+    def __init__(self, bot, login, passw):
+        self.bot = bot
+        self.login = login
+        self.passwd = passwd
+
+    def render(self, message, connection):
+        self.bot.send_message(message.chat.id, "Переводы между счетами", reply_markup=but_operation())
+
+    def next(self, message, connection):
+        if message.text == 'Назад':
+            return MainMenu(self.bot, self.login, self.passw)
+        else:
+            return Transactions(self.bot, self.login, self.passw)
+
+class TransactionsToEbenya(State):
+    def __init__(self, bot, login, passw):
+        self.bot = bot
+        self.login = login
+        self.passwd = passwd
+
+    def render(self, message, connection):
+        self.bot.send_message(message.chat.id, "Переводы между счетами", reply_markup=but_operation())
+
+    def next(self, message, connection):
+        if message.text == 'Назад':
+            return MainMenu(self.bot, self.login, self.passw)
+        else:
+            return Transactions(self.bot, self.login, self.passw)
+
 class Offers(State):
     def __init__(self, bot, login, passw):
         self.bot = bot
@@ -178,8 +223,8 @@ class Offers(State):
 
     def but_offer():
         keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-        Ops = types.KeyboardButton(text="В меню")
-        keyboard.add(Ops)
+        to_menu = types.KeyboardButton(text="В меню")
+        keyboard.add(to_menu)
         return keyboard
 
     def send_offers(self, message):
@@ -191,7 +236,7 @@ class Offers(State):
 
     def render(self, message, connection):
         send_offers(self, message)
-        self.bot.send_message(message.chat.id, reply_markup=but_offer)
+        self.bot.send_message(message.chat.id, reply_markup=but_offer())
 
     def next(self, message, connection):
         if message.text == 'Назад':
