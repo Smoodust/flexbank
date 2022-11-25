@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from telebot import types
 from telebot.types import InputFile
 from backend import *
+from frontend.News import start_help
+from offer import but_offer, send_offers
 from utils import *
 
 class State(ABC):
@@ -110,7 +112,7 @@ class Accounts(State):
         result = [f"🧾 {i+1}. {str(x['number'])} - {status_to_string[x['status']]} {type_to_string[x['type']]}" for i, x in enumerate(accounts)]
         result = '\n'.join(result)
         buttons = [types.KeyboardButton('Назад')]
-        buttons = buttons + 
+        buttons = buttons 
         markup = types.ReplyKeyboardMarkup(row_width=4).add(*buttons)
         self.bot.send_message(message.chat.id, result, reply_markup=markup)
 
@@ -144,11 +146,71 @@ class Offers(State):
         self.login = login
         self.passw = passw
 
+    def but_offer():
+        keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+        Ops = types.KeyboardButton(text="В меню")
+        keyboard.add(Ops)
+        return keyboard
+
+    def send_offers(self, message):
+        if get_sum_transaction(connection, message.user.id )>2000000:
+            self.bot.send_message(message.chat.id, text='За последний месяц вы сделали переводов на сумме превышающую 2 млн. рублей. Для того чтобы оформить вип статус перейдите по ссылке '+SEND_URL("http/exampe.com"))
+        if get_diff_transaction (connection, message.user.id )<0:
+            self.bot.send_message(message.chat.id, text='Ваши траты за последнйи месяц превысили ваш доход. Наш банк предлагает оформить кредитную карту с увеличенным рассрочным периодом. Если хотите оформить перейдите оп ссылкке: '+SEND_URL("http/exampe.com"))
+        self.bot.send_message(message.chat.id, text='Flexbank для всех новых пользователей предлагает ипотеку под пониженный процент. Если хотите оформить перейдите по ссылке: '+SEND_URL("http/exampe.com"))
+
     def render(self, message, connection):
-        markup = types.ReplyKeyboardMarkup(row_width=4).add(types.KeyboardButton('Назад'))
-        self.bot.send_message(message.chat.id, "offers", reply_markup=markup)
+        send_offers(self, message)
+        self.bot.send_message(message.chat.id, reply_markup=but_offer)
+
     def next(self, message, connection):
-        if message.text == 'Назад':
+        if message.text == 'В меню':
+            return MainMenu(self.bot, self.login, self.passw)
+        else:
+            return Offers(self.bot, self.login, self.passw)
+
+class News(State):
+    def __init__(self, bot, login, passw):
+        self.bot = bot
+        self.login = login
+        self.passw = passw
+
+    def but_offer():
+        keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+        Ops = types.KeyboardButton(text="В меню")
+        keyboard.add(Ops)
+        return keyboard
+
+    #def send_news(self, message):
+        
+    def render(self, message, connection):
+        send_offers(self, message)
+        self.bot.send_message(message.chat.id, "offers", reply_markup=but_offer)
+    def next(self, message, connection):
+        if message.text == 'В меню':
+            return MainMenu(self.bot, self.login, self.passw)
+        else:
+            return Offers(self.bot, self.login, self.passw)
+
+class Helps(State):
+    def __init__(self, bot, login, passw):
+        self.bot = bot
+        self.login = login
+        self.passw = passw
+
+    def start_help(self, message):
+        self.bot.send_message(message.chat.id, """Что делают кнопки меню?
+1.*Счета*. С помощью этой кнопки вы можете сменить свой счет/карту и настроить выбранную карту.
+2.*Операции*. С помощью этой кнопки вы можете перевести или зачислить средства.
+3.*Предложения*. С помощью этой кнопки вы можете получить специальные предложения от нас ;).
+4.*Новости*. С помощью этой кнопки вы можете узнать о наших последних новостях.""", reply_markup=types.KeyboardButton("В меню"), parse_mode='Markdown')
+
+
+    def render(self, message, connection):
+        start_help(self, message)
+
+    def next(self, message, connection):
+        if message.text == 'В меню':
             return MainMenu(self.bot, self.login, self.passw)
         else:
             return Offers(self.bot, self.login, self.passw)

@@ -3,7 +3,7 @@ import flask
 import states
 import backend
 
-API_TOKEN = "5832977748:AAH0WbooWs5awOwb0ZfegCaH4j_zil4paBo"
+API_TOKEN = "5928558655:AAHOQcmlQTMJRVe_7IFEnAHHUw2qvvYhaZM"
 APP_HOST = '127.0.0.1'
 APP_PORT = '8444'
 WEB_HOOK_URL = 'https://123f-213-80-237-142.eu.ngrok.io'
