@@ -3,7 +3,7 @@ import hashlib
 import datetime
 
 def get_connection():
-    return sl.connect(r'C:\Users\rusty\Desktop\Programming\Python projects\flexbank\database\database.db', check_same_thread=False)
+    return sl.connect(r'C:\Users\USER\Documents\flexbank\database\database.db', check_same_thread=False)
 
 def check_authentication(conn, login, passw):
     cursor = conn.cursor()
