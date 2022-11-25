@@ -132,7 +132,9 @@ class Operations(State):
 
     def next(self, message, connection):
         if message.text == 'Назад':
-            return MainMenu(self.bot, self.login, self.passw)
+            return MainMenu(self.bot)
+        elif message.text == 'Переводы':
+            return 
         else:
             return Operations(self.bot, self.login, self.passw)
 
