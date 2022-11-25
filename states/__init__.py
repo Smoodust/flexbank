@@ -253,61 +253,43 @@ class Operations(State):
         self.passw = passw
 
     def render(self, message, connection):
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('Назад'))
-        self.bot.send_message(message.chat.id, "ops", reply_markup=markup)
+        markup = types.ReplyKeyboardMarkup()
+        exit = types.KeyboardButton('Назад')
+        op_between_bills = types.KeyboardButton('Перевод между счетами')
+        op_between_persons = types.KeyboardButton('Перевод на счёт внутри банка')
+        op_ebenya = types.KeyboardButton('Перевод на счёт вне банка')
+        markup.add(exit, op_between_bills, op_between_persons,op_ebenya)
+        ops_list = ['Перевод между счетами', 'Перевод на счёт внутри банка', 'Перевод на счёт вне банка']
+        self.bot.send_message(message.chat.id, "Какой тип транзакции вы хотите совершить?", reply_markup=markup)
+        type_ops = message.text
+
+        if message.text in ops_list:
+            self.bot.send_message(message.chat.id, "Введите *номер вашего счёта*", parse_mode='Markdown')
+            id_from = message.text   
+            self.bot.send_message(message.chat.id, "Введите *сумму*", parse_mode='Markdown')
+            amount = message.text        
+
+            user_info = get_user_by_login_pass(connection, self.login, self.passw)
+            accounts = get_accounts_by_user(connection, user_info['id'])
+            result = [f"🧾 {i+1}. {str(x['number'])} - {status_to_string[x['status']]} {type_to_string[x['type']]}" for i, x in enumerate(accounts)]
+            result = '\n'.join(result)
+            buttons = [types.KeyboardButton(str(i+1)) for i in range(len(accounts))]
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(*buttons)
+            self.bot.send_message(message.chat.id, result, reply_markup=markup)
+            if type_ops == 'Перевод на счёт внутри банка':
+                make_between_cards(connection, id_from, id_to, amount)
+        
 
     def next(self, message, connection):
         if message.text == 'Назад':
             return MainMenu(self.bot, self.login, self.passw)
-        elif message.text == 'Переводы':
+        else:
             return Operations(self.bot, self.login, self.passw)
-        else:
-            return Operations(self.bot, self.login, self.passw)
+            
 
-class TransactionsBetweenBills(State):
-    def __init__(self, bot, login, passw):
-        self.bot = bot
-        self.login = login
-        self.passwd = passwd
 
-    def render(self, message, connection):
-        self.bot.send_message(message.chat.id, "Переводы между счетами", reply_markup=but_operation())
 
-    def next(self, message, connection):
-        if message.text == 'Назад':
-            return MainMenu(self.bot, self.login, self.passw)
-        else:
-            return Transactions(self.bot, self.login, self.passw)
 
-class TransactionsBetweenPersons(State):
-    def __init__(self, bot, login, passw):
-        self.bot = bot
-        self.login = login
-        self.passwd = passwd
-
-    def render(self, message, connection):
-        self.bot.send_message(message.chat.id, "Переводы между счетами", reply_markup=but_operation())
-
-    def next(self, message, connection):
-        if message.text == 'Назад':
-            return MainMenu(self.bot, self.login, self.passw)
-        else:
-            return Transactions(self.bot, self.login, self.passw)
-
-class TransactionsToEbenya(State):
-    def __init__(self, bot, login, passw):
-        self.bot = bot
-        self.login = login
-        self.passwd = passwd
-
-    def render(self, message, connection):
-        self.bot.send_message(message.chat.id, "Переводы между счетами", reply_markup=but_operation())
-
-    def next(self, message, connection):
-        if message.text == 'Назад':
-            return MainMenu(self.bot, self.login, self.passw)
-        else:
-            return Transactions(self.bot, self.login, self.passw)
 
 class Offers(State):
     def __init__(self, bot, login, passw):
@@ -316,7 +298,7 @@ class Offers(State):
         self.passw = passw
 
     def render(self, message, connection):
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('Назад'))
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('В главное меню'))
         user = get_user_by_login_pass(connection, self.login, self.passw)
         if get_sum_transaction_user(connection, user['id']) > 2000000:
             self.bot.send_photo(message.chat.id, InputFile(os.path.join(os.getcwd(), 'content', 'twomillion.png')), caption='За последний месяц вы сделали переводов на сумму, превышающую 2 млн. рублей. Для того чтобы оформить вип статус, перейдите по ссылке http://exampe.com', reply_markup=markup, parse_mode="Markdown")
@@ -326,7 +308,7 @@ class Offers(State):
             self.bot.send_photo(message.chat.id, InputFile(os.path.join(os.getcwd(), 'content', 'ipoteka.png')), caption='Flexbank для всех новых пользователей предлагает ипотеку под пониженный процент. Если хотите оформить перейдите по ссылке: http://exampe.com', reply_markup=markup, parse_mode="Markdown")
 
     def next(self, message, connection):
-        if message.text == 'Назад':
+        if message.text == 'В главное меню':
             return MainMenu(self.bot, self.login, self.passw)
         else:
             return Offers(self.bot, self.login, self.passw)

@@ -199,7 +199,7 @@ def make_transaction(conn, id_account, type, date, amount, another_subject):
     cursor.execute("INSERT INTO Customers (id_account, type, date, amount, another_subject) VALUES (?, ?, ?, ?, ?);", (id_account, type, date, amount, another_subject))
     cursor.commit()
 
-def make_between_our_cards(conn, id_from, id_to, amount):
+def make_between_cards(conn, id_from, id_to, amount):
     card_from = get_card_by_id(conn, id_from)
     card_to = get_card_by_id(conn, id_to)
     make_transaction(conn, card_from['id_account'], card_to['id_account'], datetime.today().strftime("%d/%m/%y"), -amount)
