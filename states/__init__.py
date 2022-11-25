@@ -7,6 +7,10 @@ from datetime import datetime
 import random
 import os
 import re
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from io import BytesIO
 
 class State(ABC):
     @abstractmethod
@@ -23,7 +27,7 @@ class Start(State):
 
     def render(self, message, connection):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('Да'))
-        self.bot.send_animation(message.chat.id, InputFile(os.path.join(os.getcwd(), 'content', 'FlexBank.gif')), caption='Здравствуйте! Я банкинг-бот Neo! Для начала работы пройдите авторизацию.\nНажмите Да для продолжения.', reply_markup=markup)
+        self.bot.send_animation(message.chat.id, InputFile(os.path.join(os.getcwd(), 'content', 'FlexBank.gif')), caption='Здравствуйте! Я банкинг-бот Свинота! Для начала работы пройдите авторизацию.\nНажмите Да для продолжения.', reply_markup=markup)
 
     def next(self, message, connection):
         if message.text == 'Да':
@@ -90,7 +94,8 @@ class MainMenu(State):
         ops_reply = types.KeyboardButton('Операции')
         offers_reply = types.KeyboardButton('Предложения')
         news_reply = types.KeyboardButton('Новости')
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(accounts_reply, ops_reply, offers_reply, news_reply)
+        anal_reply = types.KeyboardButton('Аналитика')
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(accounts_reply, ops_reply, offers_reply, news_reply, anal_reply)
         self.bot.send_message(message.chat.id, "Здравствуйте, {}!\nЧто хотите сделать?".format(user_info['name']), reply_markup=markup)
 
     def next(self, message, connection):
@@ -102,6 +107,8 @@ class MainMenu(State):
             return Offers(self.bot, self.login, self.passw)
         elif message.text == 'Новости':
             return News(self.bot, self.login, self.passw)
+        elif message.text == 'Аналитика':
+            return Analytic(self.bot, self.login, self.passw)
         else:
             return MainMenu(self.bot, self.login, self.passw)
 
@@ -293,6 +300,7 @@ class Offers(State):
         self.passw = passw
 
     def render(self, message, connection):
+<<<<<<< HEAD
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('В главное меню'))
         user = get_user_by_login_pass(connection, self.login, self.passw)
         if get_sum_transaction_user(connection, user['id']) > 2000000:
@@ -301,6 +309,20 @@ class Offers(State):
             self.bot.send_photo(message.chat.id, InputFile(os.path.join(os.getcwd(), 'content', 'credit.png')), caption='Ваши траты за последний месяц превысили ваш доход. Наш банк предлагает оформить кредитную карту с увеличенным рассрочным периодом. Перейдите по ссылкке: http://exampe.com', reply_markup=markup, parse_mode="Markdown")
         else:
             self.bot.send_photo(message.chat.id, InputFile(os.path.join(os.getcwd(), 'content', 'ipoteka.png')), caption='Flexbank для всех новых пользователей предлагает ипотеку под пониженный процент. Если хотите оформить перейдите по ссылке: http://exampe.com', reply_markup=markup, parse_mode="Markdown")
+=======
+        try:
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('Назад'))
+            user = get_user_by_login_pass(connection, self.login, self.passw)
+            print(get_sum_transaction_user(connection, user['id']))
+            if get_sum_transaction_user(connection, user['id']) > 500000:
+                self.bot.send_photo(message.chat.id, InputFile(os.path.join(os.getcwd(), 'content', 'twomillion.png')), caption='За последний месяц вы сделали переводов на сумму, превышающую 2 млн. рублей. Для того чтобы оформить вип статус, перейдите по ссылке http://exampe.com', reply_markup=markup, parse_mode="Markdown")
+            elif get_diff_transaction_user(connection, user['id']) < 0:
+                self.bot.send_photo(message.chat.id, InputFile(os.path.join(os.getcwd(), 'content', 'credit.png')), caption='Ваши траты за последний месяц превысили ваш доход. Наш банк предлагает оформить кредитную карту с увеличенным рассрочным периодом. Перейдите по ссылкке: http://exampe.com', reply_markup=markup, parse_mode="Markdown")
+            else:
+                self.bot.send_photo(message.chat.id, InputFile(os.path.join(os.getcwd(), 'content', 'ipoteka.png')), caption='Flexbank для всех новых пользователей предлагает ипотеку под пониженный процент. Если хотите оформить перейдите по ссылке: http://exampe.com', reply_markup=markup, parse_mode="Markdown")
+        except Exception as e:
+            print(e)
+>>>>>>> 621c370 (analytic)
 
     def next(self, message, connection):
         if message.text == 'В главное меню':
@@ -320,6 +342,79 @@ class News(State):
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             markup.add(types.KeyboardButton(text="Назад"))
             self.bot.send_photo(message.chat.id, InputFile(os.path.join(os.getcwd(), 'content', news_dict[index]['image'])), caption=news_dict[index]['desc'], reply_markup=markup, parse_mode="Markdown")
+        except Exception as e:
+            print(e)
+    def next(self, message, connection):
+        return MainMenu(self.bot, self.login, self.passw)
+
+class Analytic(State):
+    def __init__(self, bot, login, passw):
+        self.bot = bot
+        self.login = login
+        self.passw = passw
+    
+    def make_income_plot(self, df):
+        df = df[df['amount'] > 0]
+        df = df.set_index('date')
+        df = df.groupby(pd.Grouper(freq='M'))['amount'].sum().reset_index()
+        my_plot = sns.relplot(
+            data=df,
+            x="date", y="amount", kind="line"
+        )
+        buf = BytesIO()
+        my_plot.figure.savefig(buf, format = 'png')
+        buf.seek(0)
+        return buf.getvalue()
+    
+    def make_expense_plot(self, df):
+        df = df[df['amount'] < 0]
+        df['amount'] = abs(df['amount'])
+        df = df.set_index('date')
+        df = df.groupby(pd.Grouper(freq='M'))['amount'].sum().reset_index()
+        my_plot = sns.relplot(
+            data=df,
+            x="date", y="amount", kind="line"
+        )
+        buf = BytesIO()
+        my_plot.figure.savefig(buf, format = 'png')
+        buf.seek(0)
+        return buf.getvalue()
+    
+    def make_income_category_plot(self, df):
+        df = df[df['amount'] > 0]
+        count = df['another_subject'].value_counts()
+        colors = sns.color_palette('pastel')
+        fig, ax = plt.subplots()
+        ax.pie(count,  labels=count.index, autopct='%1.1f%%', colors=colors, startangle=90)
+        ax.axis('equal')
+        buf = BytesIO()
+        fig.savefig(buf, format = 'png')
+        buf.seek(0)
+        return buf.getvalue()
+    
+    def make_expense_category_plot(self, df):
+        df = df[df['amount'] < 0]
+        df['amount'] = abs(df['amount'])
+        count = df['another_subject'].value_counts()
+        colors = sns.color_palette('pastel')
+        fig, ax = plt.subplots()
+        ax.pie(count,  labels=count.index, autopct='%1.1f%%', colors=colors, startangle=90)
+        ax.axis('equal')
+        buf = BytesIO()
+        fig.savefig(buf, format = 'png')
+        buf.seek(0)
+        return buf.getvalue()
+
+    def render(self, message, connection):
+        try:
+            df = get_transactions_by_user(connection, get_user_by_login_pass(connection, self.login, self.passw)['id'])
+            df = pd.DataFrame(df)
+            df['date'] = pd.to_datetime(df['date'])
+            
+            self.bot.send_photo(message.chat.id, self.make_income_plot(df), caption='Доходы', parse_mode="Markdown")
+            self.bot.send_photo(message.chat.id, self.make_expense_plot(df), caption='Расходы', parse_mode="Markdown")
+            self.bot.send_photo(message.chat.id, self.make_income_category_plot(df), caption='Распределение доходов', parse_mode="Markdown")
+            self.bot.send_photo(message.chat.id, self.make_expense_category_plot(df), caption='Распределение расходов', parse_mode="Markdown")
         except Exception as e:
             print(e)
     def next(self, message, connection):
