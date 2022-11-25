@@ -143,29 +143,21 @@ def get_transactions_by_user(conn, id_user):
         'another_subject':news[5]
     } for news in result] 
 
-def get_sum_transaction(conn, id_user):
+def get_sum_transaction_user(conn, id_user):
     accounts = get_accounts_by_user(conn, id_user)
     accounts_id = ['id_account='+str(x['id']) for x in accounts]
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM TRANSACTIONS WHERE "+' OR '.join(accounts_id))
     result = cursor.fetchall()
-    summ = 0
-    for news in result:
-        if news[4]>0:
-            summ+=news[4]
-    return summ
+    sum = 0
+    for trans in result:
+        if trans['amount'] < 0:
+            sum += abs(trans['amount'])
+    return sum
 
-def get_sum_transaction(conn, id_user):
-    accounts = get_accounts_by_user(conn, id_user)
-    accounts_id = ['id_account='+str(x['id']) for x in accounts]
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM TRANSACTIONS WHERE "+' OR '.join(accounts_id))
-    result = cursor.fetchall()
-    summ = 0
-    for news in result:
-        if news[4]<0:
-            summ+=news[4]
-    return summ
+def get_sum_transaction_account(conn, id_account):
+    transactions = get_transactions_by_account(conn, id_account)
+    return sum([x['amount'] for x in transactions])
 
 def get_diff_transaction(conn, id_user):
     accounts = get_accounts_by_user(conn, id_user)
@@ -173,10 +165,10 @@ def get_diff_transaction(conn, id_user):
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM TRANSACTIONS WHERE "+' OR '.join(accounts_id))
     result = cursor.fetchall()
-    summ = 0
-    for news in result:
-            summ+=news[4]
-    return summ
+    diff = 0
+    for trans in result:
+        diff += trans['amount']
+    return diff
 
 def get_transactions_by_account(conn, id_account):
     cursor = conn.cursor()

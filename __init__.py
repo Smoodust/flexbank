@@ -29,6 +29,7 @@ def handle_messages(message):
     
     states_dict[id] = states_dict[id].next(message, connection)
     states_dict[id].render(message, connection)
+    print(states_dict)
 
 @app.route('/', methods=['POST'])
 def webhook():
