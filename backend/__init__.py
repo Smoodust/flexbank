@@ -111,6 +111,18 @@ def get_account_by_id(conn, id_account):
         'number':account[4]
     }
 
+def get_account_by_number(conn, number):
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM 'ACCOUNT' WHERE number=?", (str(number), ))
+    account = cursor.fetchall()[0]
+    return {
+        'id':account[0],
+        'id_user':account[1],
+        'type':account[2],
+        'status':account[3],
+        'number':account[4]
+    }
+    
 def get_card_by_id(conn, id_card):
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM CARDS WHERE id=?", (id_card, ))
@@ -173,6 +185,10 @@ def get_sum_transaction_user(conn, id_user):
     transactions = get_transactions_by_user(conn, id_user)
     return sum([abs(x['amount']) if x['amount'] < 0 else 0 for x in transactions])
 
+def get_sum_transaction_account(conn, id_account):
+    transactions = get_transactions_by_account(conn, id_account)
+    return sum([abs(x['amount']) if x['amount'] < 0 else 0 for x in transactions])
+
 def get_diff_transaction_account(conn, id_account):
     transactions = get_transactions_by_account(conn, id_account)
     return sum([x['amount'] for x in transactions])
@@ -194,13 +210,20 @@ def get_transactions_by_account(conn, id_account):
         'another_subject':news[5]
     } for news in result] 
 
-def make_transaction(conn, id_account, type, date, amount, another_subject):
+def make_transaction(conn, id_account, type, amount, another_subject):
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO Customers (id_account, type, date, amount, another_subject) VALUES (?, ?, ?, ?, ?);", (id_account, type, date, amount, another_subject))
-    cursor.commit()
+    date = datetime.datetime.now().strftime("%d/%m/%y")
+    cursor.execute("INSERT INTO TRANSACTIONS (id_account, type, date, amount, another_subject) VALUES (?, ?, ?, ?, ?);", (id_account, type, date, amount, another_subject))
+    conn.commit()
+
+def make_between_accounts(conn, id_from, id_to, amount):
+    account_from = get_account_by_id(conn, id_from)
+    account_to = get_account_by_id(conn, id_from)
+    make_transaction(conn, id_from, 'transfer', -amount, str(account_to['number']))
+    make_transaction(conn, id_to, 'transfer', amount, str(account_from['number']))
 
 def make_between_cards(conn, id_from, id_to, amount):
     card_from = get_card_by_id(conn, id_from)
     card_to = get_card_by_id(conn, id_to)
-    make_transaction(conn, card_from['id_account'], card_to['id_account'], datetime.today().strftime("%d/%m/%y"), -amount)
-    make_transaction(conn, card_to['id_account'], card_from['id_account'], datetime.today().strftime("%d/%m/%y"), amount)
+    make_transaction(conn, card_from['id_account'], 'transfer', -amount, str(card_to['card_number']))
+    make_transaction(conn, card_to['id_account'], 'transfer', amount, str(card_from['card_number']))

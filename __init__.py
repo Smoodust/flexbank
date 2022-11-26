@@ -6,8 +6,8 @@ from utils import *
 
 API_TOKEN = "5815112728:AAHcJ_GcAXDAzemA731QYrKNY_w-leAWugI"
 APP_HOST = '127.0.0.1'
-APP_PORT = '8444'
-WEB_HOOK_URL = 'https://28a7-213-80-202-212.eu.ngrok.io'
+APP_PORT = '4888'
+WEB_HOOK_URL = 'https://b826-213-80-237-142.eu.ngrok.io'
 
 bot = tb.TeleBot(API_TOKEN)
 app = flask.Flask(__name__)

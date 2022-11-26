@@ -121,7 +121,7 @@ class Accounts(State):
     def render(self, message, connection):
         user_info = get_user_by_login_pass(connection, self.login, self.passw)
         accounts = get_not_canceled_accounts_by_user(connection, user_info['id'])
-        result = [f"🧾 {i+1}. {str(x['number'])} - {status_to_string[x['status']]} {type_to_string[x['type']]}" for i, x in enumerate(accounts)]
+        result = [f"🧾 {i+1}. {str(x['number'])} - {status_to_string[x['status']]} {type_to_string[x['type']]}. Баланс: {get_diff_transaction_account(connection, x['id'])}" for i, x in enumerate(accounts)]
         result = '\n'.join(result)
         buttons = [types.KeyboardButton('Назад'), types.KeyboardButton('Обновить')]
         buttons = buttons + [types.KeyboardButton(str(i+1)) for i in range(len(accounts))]
@@ -260,38 +260,143 @@ class Operations(State):
         self.passw = passw
 
     def render(self, message, connection):
-        buttons = [types.KeyboardButton('Назад'), types.KeyboardButton('Перевод между счетами'), types.KeyboardButton('Перевод на счёт внутри банка'), types.KeyboardButton('Перевод на счёт вне банка')]
+        user_info = get_user_by_login_pass(connection, self.login, self.passw)
+        accounts = get_accounts_by_user(connection, user_info['id'])
+        buttons = [types.KeyboardButton('Назад'),types.KeyboardButton('Перевод на счёт внутри банка'), types.KeyboardButton('Перевод на счёт вне банка')]
+        if len(accounts) > 1:
+            buttons += [types.KeyboardButton('Перевод между счетами')]
         markup = types.ReplyKeyboardMarkup().add(*buttons)
         self.bot.send_message(message.chat.id, 'Какой тип транзакции вы хотите совершить?', reply_markup=markup)
         
     def next(self, message, connection):
+        user_info = get_user_by_login_pass(connection, self.login, self.passw)
+        accounts = get_accounts_by_user(connection, user_info['id'])
         if message.text == 'Назад':
             return MainMenu(self.bot, self.login, self.passw)
-        elif message.text == 'Перевод между счетами':
-            return UserInsideTransaction(self.bot, self.login, self.passw)
+        elif message.text == 'Перевод между счетами' and len(accounts) > 1:
+            return FromTransaction(self.bot, self.login, self.passw, 'Перевод между счетами')
+        elif message.text in ['Перевод на счёт внутри банка', 'Перевод на счёт вне банка']:
+            return FromTransaction(self.bot, self.login, self.passw, message.text)
         else:
             return Operations(self.bot, self.login, self.passw)
             
-class UserInsideTransaction(State):
-    def __init__(self, bot, login, passw):
+class FromTransaction(State):
+    def __init__(self, bot, login, passw, type):
         self.bot = bot
         self.login = login
         self.passw = passw
+        self.type = type
 
     def render(self, message, connection):
         user_info = get_user_by_login_pass(connection, self.login, self.passw)
-        accounts = get_not_canceled_accounts_by_user(connection, user_info['id'])
-        result = [f"🧾 {i+1}. {str(x['number'])} - {status_to_string[x['status']]} {type_to_string[x['type']]}" for i, x in enumerate(accounts)]
+        accounts = get_accounts_by_user(connection, user_info['id'])
+        result = [f"🧾 {i+1}. {str(x['number'])} - {status_to_string[x['status']]} {type_to_string[x['type']]}. Баланс: {get_diff_transaction_account(connection, x['id'])}" for i, x in enumerate(accounts)]
         result = '\n'.join(result)
         buttons = [types.KeyboardButton(str(i+1)) for i in range(len(accounts))] 
-        buttons += types.KeyboardButton('Назад')
+        buttons += [types.KeyboardButton('Назад')]
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(*buttons)
-        self.bot.send_message(message.chat.id, "Выберите первый счёт:/n" + result, reply_markup=markup)
+        self.bot.send_message(message.chat.id, "Выберите с какого счета хотите перевести деньги:\n" + result, reply_markup=markup)
+
+    def next(self, message, connection):
+        try:
+            user_info = get_user_by_login_pass(connection, self.login, self.passw)
+            accounts = get_not_canceled_accounts_by_user(connection, user_info['id'])
+            if message.text.isdigit():
+                if int(message.text) > 0 and int(message.text) <= len(accounts):
+                    return WhereTransaction(self.bot, self.login, self.passw, self.type, accounts[int(message.text) - 1]['id'])
+            elif message.text == 'Назад':
+                return Operations(self.bot, self.login, self.passw)
+            else:
+                return FromTransaction(self.bot, self.login, self.passw, self.type)
+        except Exception as e:
+            print(e)
+
+class WhereTransaction(State):
+    def __init__(self, bot, login, passw, type, id_from):
+        self.bot = bot
+        self.login = login
+        self.passw = passw
+        self.type = type
+        self.id_from = id_from
+
+    def render(self, message, connection):
+        try:
+            if self.type == 'Перевод между счетами':
+                user_info = get_user_by_login_pass(connection, self.login, self.passw)
+                accounts = get_accounts_by_user(connection, user_info['id'])
+                result = [f"🧾 {i+1}. {str(x['number'])} - {status_to_string[x['status']]} {type_to_string[x['type']]}. Баланс: {get_diff_transaction_account(connection, x['id'])}" for i, x in enumerate(accounts)]
+                result = '\n'.join(result)
+                buttons = [types.KeyboardButton(str(i+1)) for i in range(len(accounts))] 
+                buttons += [types.KeyboardButton('Назад')]
+                markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(*buttons)
+                self.bot.send_message(message.chat.id, "Выберите на какой счет хотите перевести деньги:\n" + result, reply_markup=markup)
+            else:
+                markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('Назад'))
+                self.bot.send_message(message.chat.id, "Введите на какой счет хотите перевести деньги:", reply_markup=markup)
+        except Exception as e:
+            print(e)
+
+    def next(self, message, connection):
+        try:
+            user_info = get_user_by_login_pass(connection, self.login, self.passw)
+            accounts = get_not_canceled_accounts_by_user(connection, user_info['id'])
+            if message.text.isdigit():
+                if int(message.text) > 0 and int(message.text) <= len(accounts) and self.type == 'Перевод между счетами':
+                    return AmountTransaction(self.bot, self.login, self.passw, self.type, self.id_from, accounts[int(message.text) - 1]['id'])
+                elif len(message.text) == 20 and self.type in ['Перевод на счёт внутри банка', 'Перевод на счёт вне банка']:
+                    return AmountTransaction(self.bot, self.login, self.passw, self.type, self.id_from, int(message.text))
+                else:
+                    self.bot.send_message(message.chat.id, "Попробуйте еще раз")
+                    return WhereTransaction(self.bot, self.login, self.passw)
+            elif message.text == 'Назад':
+                return Operations(self.bot, self.login, self.passw)
+            else:
+                self.bot.send_message(message.chat.id, "Попробуйте еще раз")
+                return WhereTransaction(self.bot, self.login, self.passw)
+        except Exception as e:
+            print(e)
+
+class AmountTransaction(State):
+    def __init__(self, bot, login, passw, type, id_from, id_to):
+        self.bot = bot
+        self.login = login
+        self.passw = passw
+        self.type = type
+        self.id_from = id_from
+        self.id_to = id_to
+    
+    def render(self, message, connection):
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('Назад'))
+        self.bot.send_message(message.chat.id, "Введите сколько денег перевести:", reply_markup=markup)
     
     def next(self, message, connection):
-        if message.text == 'Назад':
-            return Operations(self.bot, self.login, self.passw)
-
+        try:
+            account_from = get_account_by_id(connection, self.id_from)
+            balance = get_diff_transaction_account(connection, account_from['id'])
+            print(self.id_from, self.id_to, message.text, self.type)
+            if message.text.lstrip('-+').isdigit():
+                if balance > float(message.text):
+                    if float(message.text) > 0:
+                        if self.type == 'Перевод между счетами':
+                            make_between_accounts(connection, self.id_from, self.id_to, float(message.text))
+                        elif self.type == 'Перевод на счёт внутри банка':
+                            account_to = get_account_by_number(connection, self.id_to)
+                            make_between_accounts(connection, self.id_from, account_to['id'], float(message.text))
+                        else:
+                            make_transaction(connection, self.id_from, 'transfer', -float(message.text), str(self.id_to))
+                        return Operations(self.bot, self.login, self.passw)
+                    else:
+                        self.bot.send_message(message.chat.id, "Вы хотите отправить отрицательное число средств.\nКак?")
+                        return AmountTransaction(self.bot, self.login, self.passw, self.type, self.id_from, self.id_to)
+                else:
+                    self.bot.send_message(message.chat.id, "У вас недостаточно средств")
+                    return AmountTransaction(self.bot, self.login, self.passw, self.type, self.id_from, self.id_to)
+            elif message.text == 'Назад':
+                return Operations(self.bot, self.login, self.passw)
+            else:
+                return AmountTransaction(self.bot, self.login, self.passw, self.type, self.id_from, self.id_to)
+        except Exception as e:
+            print(e)
 
 class Offers(State):
     def __init__(self, bot, login, passw):
@@ -300,8 +405,7 @@ class Offers(State):
         self.passw = passw
 
     def render(self, message, connection):
-<<<<<<< HEAD
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('В главное меню'))
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('Назад'))
         user = get_user_by_login_pass(connection, self.login, self.passw)
         if get_sum_transaction_user(connection, user['id']) > 2000000:
             self.bot.send_photo(message.chat.id, InputFile(os.path.join(os.getcwd(), 'content', 'twomillion.png')), caption='За последний месяц вы сделали переводов на сумму, превышающую 2 млн. рублей. Для того чтобы оформить вип статус, перейдите по ссылке http://exampe.com', reply_markup=markup, parse_mode="Markdown")
@@ -309,23 +413,9 @@ class Offers(State):
             self.bot.send_photo(message.chat.id, InputFile(os.path.join(os.getcwd(), 'content', 'credit.png')), caption='Ваши траты за последний месяц превысили ваш доход. Наш банк предлагает оформить кредитную карту с увеличенным рассрочным периодом. Перейдите по ссылкке: http://exampe.com', reply_markup=markup, parse_mode="Markdown")
         else:
             self.bot.send_photo(message.chat.id, InputFile(os.path.join(os.getcwd(), 'content', 'ipoteka.png')), caption='Flexbank для всех новых пользователей предлагает ипотеку под пониженный процент. Если хотите оформить перейдите по ссылке: http://exampe.com', reply_markup=markup, parse_mode="Markdown")
-=======
-        try:
-            markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('Назад'))
-            user = get_user_by_login_pass(connection, self.login, self.passw)
-            print(get_sum_transaction_user(connection, user['id']))
-            if get_sum_transaction_user(connection, user['id']) > 500000:
-                self.bot.send_photo(message.chat.id, InputFile(os.path.join(os.getcwd(), 'content', 'twomillion.png')), caption='За последний месяц вы сделали переводов на сумму, превышающую 2 млн. рублей. Для того чтобы оформить вип статус, перейдите по ссылке http://exampe.com', reply_markup=markup, parse_mode="Markdown")
-            elif get_diff_transaction_user(connection, user['id']) < 0:
-                self.bot.send_photo(message.chat.id, InputFile(os.path.join(os.getcwd(), 'content', 'credit.png')), caption='Ваши траты за последний месяц превысили ваш доход. Наш банк предлагает оформить кредитную карту с увеличенным рассрочным периодом. Перейдите по ссылкке: http://exampe.com', reply_markup=markup, parse_mode="Markdown")
-            else:
-                self.bot.send_photo(message.chat.id, InputFile(os.path.join(os.getcwd(), 'content', 'ipoteka.png')), caption='Flexbank для всех новых пользователей предлагает ипотеку под пониженный процент. Если хотите оформить перейдите по ссылке: http://exampe.com', reply_markup=markup, parse_mode="Markdown")
-        except Exception as e:
-            print(e)
->>>>>>> 621c370 (analytic)
 
     def next(self, message, connection):
-        if message.text == 'В главное меню':
+        if message.text == 'Назад':
             return MainMenu(self.bot, self.login, self.passw)
         else:
             return Offers(self.bot, self.login, self.passw)
@@ -407,6 +497,7 @@ class Analytic(State):
 
     def render(self, message, connection):
         try:
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(types.KeyboardButton('Назад'))
             df = get_transactions_by_user(connection, get_user_by_login_pass(connection, self.login, self.passw)['id'])
             df = pd.DataFrame(df)
             df['date'] = pd.to_datetime(df['date'])
@@ -414,7 +505,7 @@ class Analytic(State):
             self.bot.send_photo(message.chat.id, self.make_income_plot(df), caption='Доходы', parse_mode="Markdown")
             self.bot.send_photo(message.chat.id, self.make_expense_plot(df), caption='Расходы', parse_mode="Markdown")
             self.bot.send_photo(message.chat.id, self.make_income_category_plot(df), caption='Распределение доходов', parse_mode="Markdown")
-            self.bot.send_photo(message.chat.id, self.make_expense_category_plot(df), caption='Распределение расходов', parse_mode="Markdown")
+            self.bot.send_photo(message.chat.id, self.make_expense_category_plot(df), caption='Распределение расходов', reply_markup=markup, parse_mode="Markdown")
         except Exception as e:
             print(e)
     def next(self, message, connection):
